@@ -77,7 +77,7 @@ npm run dev
 
 Se necesita colocar el puerto enviado por nuestro servidor, en ese caso cambiamos lo siguiente en el index.js
 
-### index.js
+## index.js
 
 ```
 app.set('port', process.env.PORT || 3000 );
@@ -103,7 +103,7 @@ app.use(morgan('dev'));
 
 ```
 
-### Agregar cors
+## Agregar cors
 
 Es un paquete middleware para express, permite realizar peticiones remotas desde otras pc o clientes.
 
@@ -128,7 +128,8 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
 ```
-#### Instalación de babel
+## Instalación de babel
+
 Compatibilidad de EC6 a EC5
 
 ```
@@ -197,7 +198,7 @@ import path from 'path';
 
  ```
 
-### Instalar mongoose
+## Instalar mongoose
 
  ```
 npm install mongoose --save
@@ -217,7 +218,7 @@ mongoose.connect(dbUrl, {useCreateIndex:true, useNewUrlParser: true})
 
  ```
 
- ### Creando modelos con moongose
+ ## Creando modelos con moongose
 
  categoria.js
 
@@ -255,7 +256,7 @@ export default {
 
 
  ```
- ### Uso de Express para middlewares
+ ## Uso de Express para middlewares
 
  index.js principal agregamos:
 
@@ -268,7 +269,7 @@ app.get('/hola', function(req, res) {
  ```
  Vamos a obtener un hello world cuando iniciemos con localhost:3000/hola
 
- ### Creando el controlador de la categoria
+ ## Creando el controlador de la categoria
 
  *CategoriaController.js*
 
@@ -387,13 +388,13 @@ export default {
 
  ```
 
- ### Permitir que el middleware devuelva promesas
+ ## Permitir que el middleware devuelva promesas
 
  ```
 npm install express-promise-router --save
 
  ```
-### Rutas necesarias para acceder a las funciones del controlador llamado categoriaController
+## Rutas necesarias para acceder a las funciones del controlador llamado categoriaController
 
 Creamos el archivo *categorias.js* dentro de la carpeta *routes*
 
@@ -476,7 +477,7 @@ app.listen( app.get('port'),()=>{
 ```
 
 
-### Personalizando nuestro Controller
+## Personalizando nuestro Controller
 
 Para que no se muestre cierta propiedad de esta categoria basta con colocar en nuestro componente list lo siguiente:
 
@@ -507,7 +508,7 @@ Para que no se muestre cierta propiedad de esta categoria basta con colocar en n
 
 ```
 
-### Regex Filtro de ordenes y búsqueda
+## Regex Filtro de ordenes y búsqueda
 
 Proporciona capacidades de expresión regular para cadenas de coincidencia de patrones en las consultas.
 
@@ -537,7 +538,7 @@ Busqueda en la propiedad nombre ó en description
     },
 ```
 
-### Modelo artículo
+## Modelo artículo
 
 Creamos el archivo articulos.js en nuestra carpeta modelos:
 
@@ -582,7 +583,7 @@ export default {
 
 ```
 
-### Archivo Controller del Articulo
+## Archivo Controller del Articulo
 
 ArticuloController.js
 
@@ -708,7 +709,7 @@ export default {
 
 ```
 
-### Rutas para articulos
+## Rutas para articulos
 
 Creamos en la carpeta routes articulo.js
 
@@ -795,7 +796,7 @@ export default {
 
 ```
 
-### Controlador Usuario
+## Controlador Usuario
 
 Antes de realizar el controlador se debe instalar npm install bcryptjs --save para encriptar las contraseñas de nuestra entrada password del modelo
 
@@ -936,7 +937,7 @@ export default {
 ```
 
 
-### Rutas Usuarios
+## Rutas Usuarios
 
 usuario.js de la carpeta routes
 
@@ -976,7 +977,7 @@ export default router;
 
 ```
 
-### Generar el token con JSON Web Token
+## Generar el token con JSON Web Token
 
 Sirve para enviar datos de inicio de sesión 
 
@@ -1232,9 +1233,9 @@ export default router;
 
 ```
 
-### Autenticación auth
+## Autenticación auth
 
-## Middlewares
+### Middlewares
 
 En la carpeta *middlewares* se crea el archivo *auth.js*
 
