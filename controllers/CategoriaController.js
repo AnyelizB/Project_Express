@@ -38,7 +38,10 @@ export default {
     }, //consultar categoria
     list:async (req,res,next)=>{
         try{
-           const reg=await models.Categoria.find({});
+           let valor = req.query.valor;
+           const reg=await models.Categoria.find({$or:[{'nombre': new RegExp(valor,'i')},{'description': new RegExp(valor,'i')}]},{createdAt:0})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
            res.status(200).json(reg);
         }
         catch(e){

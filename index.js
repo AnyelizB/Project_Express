@@ -8,11 +8,11 @@ import router from './routes';
 
 //const morgan=require('morgan');
 //const cors=require('cors');
-//conexion a bd de MongoDB
+//********************* conexion a bd de MongoDB */
 mongoose.Promise=global.Promise;
 const dbUrl= 'mongodb://localhost:27017/dbexpress';
 mongoose.connect(dbUrl, {useCreateIndex:true, useNewUrlParser: true})
-.then(mongoose => console.log('Conectando a la base de datos en el pueeto 27017'))
+.then(mongoose => console.log('Conectando a la base de datos en el puerto 27017'))
 .catch(err => console.log(err))
 
 //************************************ */
@@ -24,7 +24,7 @@ app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 app.use(express.static(path.join(__dirname,'public')))
 
-app.use('/api',router) // para que usa el router de la carpeta routes
+app.use('/api',router) // para que use el router de la carpeta routes
 
 app.set('port', process.env.PORT || 3000 );
 
