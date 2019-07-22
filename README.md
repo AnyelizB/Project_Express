@@ -1362,6 +1362,152 @@ export default router;
 
 ```
 
+## Restringiendo las rutas de categorías y artículos
+
+En la carpeta routes categoria.js
+
+```
+import routerx from 'express-promise-router';
+import categoriaController from '../controllers/CategoriaController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyAlmacenero,categoriaController.add);
+router.get('/query',auth.verifyAlmacenero ,categoriaController.query);
+router.get('/list',auth.verifyAlmacenero,categoriaController.list);
+router.put('/update', auth.verifyAlmacenero ,categoriaController.update);
+router.delete('/remove', auth.verifyAlmacenero,categoriaController.remove);
+router.put('/activate',auth.verifyAlmacenero ,categoriaController.activate);
+router.put('/desactivate', auth.verifyAlmacenero, categoriaController.desactivate);
+
+export default router;
+
+```
+
+articulos.js del routes
+
+```
+import routerx from 'express-promise-router';
+import articuloController from '../controllers/ArticuloController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyAlmacenero,articuloController.add);
+router.get('/query', auth.verifyAlmacenero,articuloController.query);
+router.get('/list',auth.verifyAlmacenero,articuloController.list);
+router.put('/update', auth.verifyAlmacenero,articuloController.update);
+router.delete('/remove', auth.verifyAlmacenero,articuloController.remove);
+router.put('/activate', auth.verifyAlmacenero,articuloController.activate);
+router.put('/desactivate', auth.verifyAlmacenero,articuloController.desactivate);
+
+export default router;
+
+```
+
+## Creando personas para identificar si el cliente o proveedor
+
+### Modelo personas
+
+Creando el modelo persona:
+*persona.js*
+
+```
+
+// import mongoose.(Schema) from 'mongoose';
+import mongoose from "mongoose";
+
+// Save a reference to the Schema constructor `mongoose.model`
+let Schema = mongoose.Schema;
+
+const personaSchema= new Schema({
+    tipo_persona:{type: String, maxlength: 20, required: true}, //cliente o proveedor
+    nombre:{type: String, maxlength: 50, unique: true, required: true},
+    tipo_documento:{type: String, maxlength: 20},
+    num_documento:{type: String , maxlength: 20},
+    direccion:{type: String, maxlength: 70},
+    telefono:{type: String , maxlength: 20},
+    email:{type: String, maxlength: 50, unique: true},
+    estado: {type: Number, default:1},
+    createAt:{type:Date, default: Date.now}
+});
+
+const Persona = mongoose.model('persona', personaSchema);
+
+export default Persona;
+
+```
+
+En el index del modelo *index.js* 
+
+```
+
+import Categoria from './categoria';
+import Articulo from './articulo';
+import Usuario from './usuario';
+import Persona from './persona';
+
+export default {
+    Categoria,
+    Articulo,
+    Usuario,
+    Persona
+}
+
+```
+
+## Rutas Personas
+
+Creamos el archivo *personas.js* en routes
+
+```
+import routerx from 'express-promise-router';
+import personaController from '../controllers/PersonaController';
+import auth from '../middlewares/auth';
+
+
+const router= routerx();
+
+router.post('/add', auth.verifyUsuario ,personaController.add); // solamente el administrador va apoder agregar nuevos usuarios
+router.get('/query', auth.verifyUsuario ,personaController.query);
+router.get('/list', auth.verifyUsuario ,personaController.list);
+router.get('/listClientes', auth.verifyUsuario ,personaController.list);
+router.get('/listProveedores', auth.verifyUsuario ,personaController.list);
+router.put('/update', auth.verifyUsuario ,personaController.update);
+router.delete('/remove',auth.verifyUsuario ,personaController.remove);
+router.put('/activate', auth.verifyUsuario ,personaController.activate);
+router.put('/desactivate', auth.verifyUsuario ,personaController.desactivate);
+
+export default router;
+
+
+```
+
+Actualizamos el archivo index.js de routes
+
+```
+import routerx from 'express-promise-router';
+import categoriaRouter from './categoria';
+import articuloRouter from './articulos';
+import usuarioRouter from './usuario';
+import personaRouter from './persona';
+
+const router= routerx();
+
+router.use('/categoria', categoriaRouter);
+router.use('/articulo', articuloRouter);
+router.use('/usuario', usuarioRouter);
+router.use('/persona', personaRouter);
+
+export default router;
+
+```
+
+
+
+
+
 
 
 
