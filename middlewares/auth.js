@@ -24,6 +24,8 @@ export default {
     },
     verifyAdministrador: async(req,res,next)=>{
 
+        console.log(req.headers.token);
+
         if(!req.headers.token){// si no existe el token
 
             return res.status(404).send({
@@ -45,7 +47,8 @@ export default {
 
     },
     verifyAlmacenero: async(req, res, next)=>{
-
+        console.log('entra a verifyAlmacenero');
+        
         if(!req.headers.token){// si no existe el token
 
             return res.status(404).send({

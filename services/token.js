@@ -24,9 +24,9 @@ async function checkToken(token){
 }
 
 export default {
-    encode: async(_id)=>{ // generar el token con ese id ya autenticado
+    encode: async(_id, rol, email)=>{ // generar el token con ese id ya autenticado
         //utilizamos el metodo sign de jwt y le agregamos tres parametros, el id que recibira, la clave para generar y el tiempo de expiración q en este caso sera de 1 dia
-        const token = jwt.sign({_id:_id},'claveSecretaParaGenerarElToken',{expiresIn: '1d'});
+        const token = jwt.sign({_id:_id, rol:rol, email:email},'claveSecretaParaGenerarElToken',{expiresIn: '1d'});
 
         return token;
     },

@@ -515,7 +515,7 @@ Proporciona capacidades de expresión regular para cadenas de coincidencia de pa
 "i" es para la coincidencia entre mayúsculas y minúsculas
 
 Busqueda de contenido según la palabra de la propiedad, ejemplo:
-valor= ambio donde la propiedad nombre= Cambio, de esa manera realiza la busqueda
+valor= cambio donde la propiedad nombre= Cambio, de esa manera realiza la busqueda
 
 Busqueda en la propiedad nombre ó en description
 ```
@@ -1457,6 +1457,165 @@ export default {
 
 ```
 
+## Creando el controlador de personas
+
+Se crea el archivo PersonaController.js en la carpeta Controller
+
+*PersonaController.js*
+
+```
+import models from '../models';
+
+export default {
+    add: async (req,res,next)=>{
+
+        try{
+            const reg= await models.Persona.create(req.body);
+            res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    query: async (req,res,next)=>{
+        try{
+
+            const reg= await models.Persona.findOne({_id:req.query._id})
+            .populate('categoria',{nombre:1}); //vamos a poblar desde nuestro modelo categoria para traernos el nombre
+
+            if(!reg){
+                res.status(404).send({
+                    message: 'El registro no existe'
+                });                
+            }else{
+                res.status(200).json(reg);
+            }            
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    list:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Persona.find({$or:[{'nombre': new RegExp(valor,'i')},{'email': new RegExp(valor,'i')}]},{createdAt:0})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    listClientes:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Persona.find({$or:[{'nombre': new RegExp(valor,'i')},{'email': new RegExp(valor,'i')}], 'tipo_persona': 'Cliente'},{createdAt:0})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    listProveedores:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Persona.find({$or:[{'nombre': new RegExp(valor,'i')},{'email': new RegExp(valor,'i')}], 'tipo_persona': 'Proveedor'},{createdAt:0})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    update:async (req,res,next)=>{
+        
+        try{
+           //console.log('lkfgagf')
+           const reg= await models.Persona.findByIdAndUpdate({_id:req.body._id},{tipo_persona: req.body.tipo_persona, nombre: req.body.nombre, tipo_documento: req.body.tipo_documento, num_documento:req.body.num_documento, direccion:req.body.direccion, telefono:req.body.telefono, email: req.body.email })
+           
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    remove:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Persona.findByIdAndDelete({_id:req.body._id});
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    activate:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Persona.findByIdAndUpdate({_id:req.body._id},{estado:1});
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    desactivate:async (req,res,next)=>{
+        try{
+            
+            const reg= await models.Persona.findByIdAndUpdate({_id:req.body._id},{estado:0});
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    }
+}
+
+```
+
 ## Rutas Personas
 
 Creamos el archivo *personas.js* en routes
@@ -1504,7 +1663,1087 @@ export default router;
 
 ```
 
+## Creando el Ingreso en el Stock 
 
+### Crear modelo
+
+En la carpeta modelo creamos el archivo *ingreso.js*
+
+```
+// import mongoose.(Schema) from 'mongoose';
+import mongoose from "mongoose";
+import { truncate } from "fs";
+
+// Save a reference to the Schema constructor `mongoose.model`
+let Schema = mongoose.Schema;
+
+const ingresoSchema= new Schema({
+
+    usuario:{type: Schema.ObjectId, ref:'usuario', required: true}, 
+    persona:{type: Schema.ObjectId, ref:'persona', required: true}, 
+    tipo_comprobante:{type: String, maxlength: 20, required: true}, 
+    serie_comprobante:{type: String, maxlength: 7}, 
+    num_comprobante:{type: String, maxlength: 20, required: true}, 
+    impuesto:{type: Number, required:true},
+    total:{type: Number, required:true},
+    detalles:[{
+        _id:{
+            type:String,
+            required:true
+        },
+        articulo: {
+            type:String,
+            required: true
+        },
+        cantidad:{
+            type:Number,
+            required: true
+        },
+        precio:{
+            type:Number,
+            required:true
+        }
+    }],
+    estado:{type: Number, default:1},
+    createAt:{type: Date, default: Date.now}
+
+});
+
+const Ingreso = mongoose.model('ingreso', ingresoSchema);
+
+export default Ingreso;
+
+```
+
+Actualizar el archivo *index.js* del modelo
+
+```
+
+import Categoria from './categoria';
+import Articulo from './articulo';
+import Usuario from './usuario';
+import Persona from './persona';
+import Ingreso from './ingreso'
+
+export default {
+    Categoria,
+    Articulo,
+    Usuario,
+    Persona,
+    Ingreso
+}
+
+```
+
+### Crear el controlador del ingreso
+
+Se crea en la carpeta controller el archivo *IngresoController.js*
+
+```
+
+import models from '../models';
+
+async function aumentarStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)+parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+//actualizar el stock
+//Disminuir stock
+async function disminuirStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)-parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+
+
+import { Query } from 'mongoose';
+
+export default {
+    add: async (req,res,next)=>{
+
+        try{
+            const reg= await models.Ingreso.create(req.body);
+            // Actualizar stock osea llamar la función
+            let detalles = req.body.detalles;
+            detalles.map(function(x){
+                aumentarStock(x._id,x.cantidad);
+            });
+            res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    query: async (req,res,next)=>{
+        try{
+
+            const reg= await models.Ingreso.findOne({_id:req.query._id})
+            .populate('usuario', {nombre:1})
+            .populate('persona', {nombre:1});
+            if(!reg){
+                res.status(404).send({
+                    message: 'El registro no existe'
+                });                
+            }else{
+                res.status(200).json(reg);
+            }            
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    }, 
+    list:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Ingreso.find({$or:[{'num_comprobante': new RegExp(valor,'i')},{'serie_comprobante': new RegExp(valor,'i')}]},{createdAt:0})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+   /* update:async (req,res,next)=>{
+        try{
+           const reg= await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{nombre:req.body.nombre, description:req.body.description})
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    remove:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Categoria.findByIdAndDelete({_id:req.body._id});
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },*/
+    activate:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{estado:1});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                 aumentarStock(x._id,x.cantidad);
+             });
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    desactivate:async (req,res,next)=>{
+        try{
+            
+            const reg= await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{estado:0});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+             });
+            
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+}
+
+
+```
+
+### Rutas del Ingreso creado
+
+En la carpeta de routes agregamos el archivo *ingreso.js*
+
+```
+import routerx from 'express-promise-router';
+import ingresoController from '../controllers/IngresoController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyAlmacenero,ingresoController.add);
+router.get('/query',auth.verifyAlmacenero ,ingresoController.query);
+router.get('/list',auth.verifyAlmacenero,ingresoController.list);
+router.put('/activate',auth.verifyAlmacenero ,ingresoController.activate);
+router.put('/desactivate', auth.verifyAlmacenero, ingresoController.desactivate);
+
+export default router;
+
+```
+
+
+Actualizamos el archivo index.js del routes
+
+```
+import routerx from 'express-promise-router';
+import categoriaRouter from './categoria';
+import articuloRouter from './articulos';
+import usuarioRouter from './usuario';
+import personaRouter from './persona';
+import ingresoRouter from './ingreso';
+
+const router= routerx();
+
+router.use('/categoria', categoriaRouter);
+router.use('/articulo', articuloRouter);
+router.use('/usuario', usuarioRouter);
+router.use('/persona', personaRouter);
+router.use('/ingreso', ingresoRouter);
+
+export default router;
+
+
+```
+
+### Buscar por código de barras
+
+En la carpeta del controlador en el archivo *ArticuloController.js* se agrega lo siguiente:
+
+```
+...
+ queryCodigo: async (req,res,next)=>{
+        try{
+
+            const reg= await models.Articulo.findOne({codigo:req.query.codigo})
+            .populate('categoria',{nombre:1}); //vamos a poblar desde nuestro modelo categoria para traernos el nombre
+
+            if(!reg){
+                res.status(404).send({
+                    message: 'El registro no existe'
+                });                
+            }else{
+                res.status(200).json(reg);
+            }            
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },...
+```
+Por ende en las rutas de articulo agregamos lo nuevo creado, quedando de la siguiente manera:
+*articulos.js*
+
+```
+import routerx from 'express-promise-router';
+import articuloController from '../controllers/ArticuloController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyAlmacenero,articuloController.add);
+router.get('/query', auth.verifyAlmacenero,articuloController.query);
+router.get('/queryCodigo', auth.verifyUsuario,articuloController.queryCodigo);
+
+router.get('/list',auth.verifyAlmacenero,articuloController.list);
+router.put('/update', auth.verifyAlmacenero,articuloController.update);
+router.delete('/remove', auth.verifyAlmacenero,articuloController.remove);
+router.put('/activate', auth.verifyAlmacenero,articuloController.activate);
+router.put('/desactivate', auth.verifyAlmacenero,articuloController.desactivate);
+
+export default router;
+
+```
+
+## Creación de la Gestión de Ventas
+
+### Creación del modelo 
+
+En la carpeta del modelo creamos el modelo *venta.js*
+
+```
+// import mongoose.(Schema) from 'mongoose';
+import mongoose from "mongoose";
+
+// Save a reference to the Schema constructor `mongoose.model`
+let Schema = mongoose.Schema;
+
+const ventaSchema= new Schema({
+
+    usuario:{type: Schema.ObjectId, ref:'usuario', required: true}, 
+    persona:{type: Schema.ObjectId, ref:'persona', required: true}, 
+    tipo_comprobante:{type: String, maxlength: 20, required: true}, 
+    serie_comprobante:{type: String, maxlength: 7}, 
+    num_comprobante:{type: String, maxlength: 20, required: true}, 
+    impuesto:{type: Number, required:true},
+    total:{type: Number, required:true},
+    detalles:[{
+        _id:{
+            type:String,
+            required:true
+        },
+        articulo: {
+            type:String,
+            required: true
+        },
+        cantidad:{
+            type:Number,
+            required: true
+        },
+        precio:{
+            type:Number,
+            required:true
+        },
+        descuento:{
+            type:Number,
+            required:true
+        }
+    }],
+    estado:{type: Number, default:1},
+    createAt:{type: Date, default: Date.now}
+
+});
+
+const Venta = mongoose.model('venta', ventaSchema);
+
+export default Venta;
+
+```
+
+
+*index.js* del modelo
+
+```
+import Categoria from './categoria';
+import Articulo from './articulo';
+import Usuario from './usuario';
+import Persona from './persona';
+import Ingreso from './ingreso';
+import Venta from './venta';
+
+export default {
+    Categoria,
+    Articulo,
+    Usuario,
+    Persona,
+    Ingreso,
+    Venta
+}
+
+```
+### Controlador Ventas
+
+En la carpeta Controller agregamos el archivo *VentasController.js*
+
+```
+import models from '../models';
+
+async function aumentarStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)+parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+//actualizar el stock
+//Disminuir stock
+async function disminuirStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)-parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+
+
+import { Query } from 'mongoose';
+
+export default {
+    add: async (req,res,next)=>{
+
+        try{
+            const reg= await models.Venta.create(req.body);
+            // Actualizar stock osea llamar la función
+            let detalles = req.body.detalles;
+            detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+            });
+            res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    query: async (req,res,next)=>{
+        try{
+
+            const reg= await models.Venta.findOne({_id:req.query._id})
+            .populate('usuario', {nombre:1})
+            .populate('persona', {nombre:1});
+            if(!reg){
+                res.status(404).send({
+                    message: 'El registro no existe'
+                });                
+            }else{
+                res.status(200).json(reg);
+            }            
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    }, 
+    list:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Venta.find({$or:[{'num_comprobante': new RegExp(valor,'i')},{'serie_comprobante': new RegExp(valor,'i')}]})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+   /* update:async (req,res,next)=>{
+        try{
+           const reg= await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{nombre:req.body.nombre, description:req.body.description})
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    remove:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Categoria.findByIdAndDelete({_id:req.body._id});
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },*/
+    activate:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Venta.findByIdAndUpdate({_id:req.body._id},{estado:1});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+             });
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    desactivate:async (req,res,next)=>{
+        try{
+            
+            const reg= await models.Venta.findByIdAndUpdate({_id:req.body._id},{estado:0});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                aumentarStock(x._id,x.cantidad);
+             });
+            
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+}
+
+```
+
+### Modificación en IngresoController.js
+
+Se modifica el metodo list de nuestro controlador en la sección de fecha, debido a que si necesitaremos la fecha de ingreso y ventas por lo tanto *createAt: 1* :
+
+```
+  ...
+  list:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Ingreso.find({$or:[{'num_comprobante': new RegExp(valor,'i')},{'serie_comprobante': new RegExp(valor,'i')}]})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+   ...
+
+
+```
+
+
+### Rutas de Ventas
+
+En la carpeta routes agregamos el archivo *ventas.js*
+
+```
+
+import routerx from 'express-promise-router';
+import ventaController from '../controllers/VentaController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyVendedor,ventaController.add);
+router.get('/query',auth.verifyVendedor ,ventaController.query);
+router.get('/list',auth.verifyVendedor,ventaController.list);
+router.put('/activate',auth.verifyVendedor ,ventaController.activate);
+router.put('/desactivate', auth.verifyVendedor, ventaController.desactivate);
+
+export default router;
+
+
+```
+
+En el *index.js* del routes
+
+```
+import routerx from 'express-promise-router';
+import categoriaRouter from './categoria';
+import articuloRouter from './articulos';
+import usuarioRouter from './usuario';
+import personaRouter from './persona';
+import ingresoRouter from './ingreso';
+import ventaRouter from './venta';
+
+const router= routerx();
+
+router.use('/categoria', categoriaRouter);
+router.use('/articulo', articuloRouter);
+router.use('/usuario', usuarioRouter);
+router.use('/persona', personaRouter);
+router.use('/ingreso', ingresoRouter);
+router.use('/venta', ventaRouter);
+
+
+export default router;
+
+```
+
+
+
+## Como obtener la venta por periodo
+
+En este caso tomaremos la venta por un periodo de 12meses. Para ello tomamos el controlador de ventas:
+
+*VentaController.js*
+
+```
+
+import models from '../models';
+
+async function aumentarStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)+parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+//actualizar el stock
+//Disminuir stock
+async function disminuirStock(idArticulo, cantidad){
+
+    let {stock} = await models.Articulo.findOne({_id:idArticulo});
+    let nStock=parseInt(stock)-parseInt(cantidad);
+    const reg= await models.Articulo.findByIdAndUpdate({_id:idArticulo},{stock:nStock});
+
+}
+
+
+import { Query } from 'mongoose';
+
+export default {
+    add: async (req,res,next)=>{
+
+        try{
+            const reg= await models.Venta.create(req.body);
+            // Actualizar stock osea llamar la función
+            let detalles = req.body.detalles;
+            detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+            });
+            res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    query: async (req,res,next)=>{
+        try{
+
+            const reg= await models.Venta.findOne({_id:req.query._id})
+            .populate('usuario', {nombre:1})
+            .populate('persona', {nombre:1});
+            if(!reg){
+                res.status(404).send({
+                    message: 'El registro no existe'
+                });                
+            }else{
+                res.status(200).json(reg);
+            }            
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    }, 
+    list:async (req,res,next)=>{
+        try{
+           let valor = req.query.valor;
+           const reg=await models.Venta.find({$or:[{'num_comprobante': new RegExp(valor,'i')},{'serie_comprobante': new RegExp(valor,'i')}]})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+   /* update:async (req,res,next)=>{
+        try{
+           const reg= await models.Ingreso.findByIdAndUpdate({_id:req.body._id},{nombre:req.body.nombre, description:req.body.description})
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    remove:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Categoria.findByIdAndDelete({_id:req.body._id});
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },*/
+    activate:async (req,res,next)=>{
+        try{
+
+            const reg= await models.Venta.findByIdAndUpdate({_id:req.body._id},{estado:1});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                disminuirStock(x._id,x.cantidad);
+             });
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+    desactivate:async (req,res,next)=>{
+        try{
+            
+            const reg= await models.Venta.findByIdAndUpdate({_id:req.body._id},{estado:0});
+             // Actualizar stock osea llamar la función
+             let detalles = reg.detalles;
+             detalles.map(function(x){
+                aumentarStock(x._id,x.cantidad);
+             });
+            
+            res.status(200).json(200);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+
+    grafico12Meses:async(req,res,next)=>{
+        try{
+           
+            const reg= await models.Venta.aggregate(
+                [
+                    {
+                        // agrupar por propiedades de mongoose
+
+                        $group:{
+                            _id:{
+                                mes:{$month:"$createAt"}, // lo que traemos del modelo
+                                year:{$year:"$createAt"} // lo que traemos del modelo
+                            },
+                            total:{$sum:"$total"}, // lo que traemos del modelo
+                            numero:{$sum:1} // es un contador
+                        }
+                    },
+                    {
+                        //ordenar por propiedades de mongoose
+                        $sort:{
+
+                            "_id.year": -1, "_id_mes":-1 //lo ordeno de manera descendente el id en año y mes del grupo creado 
+
+                        }
+                    }
+                ]
+            ).limit(12);//solo se necesita las dos ultimas estadisticas
+           
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+    }
+}
+
+
+```
+
+Y en la routa de la carpeta routes:
+
+*venta.js*
+
+```
+import routerx from 'express-promise-router';
+import ventaController from '../controllers/VentaController';
+import auth from '../middlewares/auth';
+
+const router= routerx();
+
+router.post('/add',auth.verifyVendedor,ventaController.add);
+router.get('/query',auth.verifyVendedor ,ventaController.query);
+router.get('/list',auth.verifyVendedor,ventaController.list);
+router.get('/grafico12meses',auth.verifyUsuario,ventaController.grafico12Meses);
+
+router.put('/activate',auth.verifyVendedor ,ventaController.activate);
+router.put('/desactivate', auth.verifyVendedor, ventaController.desactivate);
+
+export default router;
+
+```
+
+De esta manera obtenemos los datos necesarios para la grafica de ventas por los ultimos 12meses, ahora se requiere la grafica de ingreso de los mismos 12 meses, por lo que agregamos el mismo metodo pero con el modelo de ingreso:
+
+*IngresoController.js*
+
+```
+.
+.
+.
+
+ grafico12Meses:async(req,res,next)=>{
+        try{
+           
+            const reg= await models.Ingreso.aggregate(
+                [
+                    {
+                        // agrupar por propiedades de mongoose
+
+                        $group:{
+                            _id:{
+                                mes:{$month:"$createAt"}, // lo que traemos del modelo
+                                year:{$year:"$createAt"} // lo que traemos del modelo
+                            },
+                            total:{$sum:"$total"}, // lo que traemos del modelo
+                            numero:{$sum:1} // es un contador
+                        }
+                    },
+                    {
+                        //ordenar por propiedades de mongoose
+                        $sort:{
+
+                            "_id.year": -1, "_id_mes":-1 //lo ordeno de manera descendente el id en año y mes del grupo creado 
+
+                        }
+                    }
+                ]
+            ).limit(12);//solo se necesita las dos ultimas estadisticas
+           
+            res.status(200).json(reg);
+           
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+    }
+
+.
+.
+.
+
+```
+
+Y en el modelo:
+
+*venta.js*
+
+```
+
+router.get('/grafico12meses',auth.verifyUsuario,ingresoController.grafico12Meses);
+
+
+```
+
+
+## Consultar compras y ventas entre fechas
+
+En el Controlador *IngresoController.js*
+
+```
+
+.
+.
+.
+
+consultaFechas:async (req,res,next)=>{
+        try{
+           let start = req.body.start;
+           let end = req.body.end;
+
+           const reg=await models.Ingreso.find({"$createAt": {"$gte":start, "$lt":end}})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+
+    .
+    .
+    .
+
+```
+
+En la ruta *ingreso.js*
+
+```
+
+router.get('/consultafechas',auth.verifyUsuario,ingresoController.consultaFechas);
+
+
+```
+Ahora lo mismo en ventas:
+
+*VentaController.js*
+
+```
+.
+.
+.
+
+  consultaFechas:async (req,res,next)=>{
+        try{
+           let start = req.body.start;
+           let end = req.body.end;
+
+           const reg=await models.Venta.find({"$createAt": {"$gte":start, "$lt":end}})
+           .populate('usuario', {nombre:1})
+           .populate('persona', {nombre:1})
+           .sort({'createdAt':-1}); //ordenar de manera descendente
+
+           res.status(200).json(reg);
+        }
+        catch(e){
+            res.status(500).send({
+                message:'Ocurrió un error'
+            });
+            next(e);
+        }
+
+    },
+
+    .
+    .
+    .
+    
+
+```
+
+Ruta de *venta.js*
+
+```
+
+router.get('/consultafechas',auth.verifyUsuario,ventaController.consultaFechas);
+
+
+```
+
+### Mongo desde la terminal
+
+Desde la terminal de linux:
+
+```
+sudo su
+mongo
+
+```
+
+Desde cmd de Windows se busca la carpeta donde se guardo mongoDB Normalmente en Archivo de Programa/mongoDB/Server/4.0/bin y abrimos la consola y ejecutamos dentro de esa dirección lo siguiente:
+
+```
+mongo
+
+```
+
+Para ver las BD que tenemos actualmente 
+
+```
+show databases
+
+```
+
+Ejecutar como administrador en windows desde la ruta de mongodump para generar la copia de respaldo ó en linux desde la terminal(no run mongo):
+
+```
+mongodump --db dbsistema
+
+```
+
+Desde linux interactuar con la base de datos [seguir el manual](https://jarriagadeveloper.wordpress.com/2016/01/19/mongodb-comandos-basicos/)
+
+```
+use nuestrabd
+```
+ejemplo:
+
+```
+use dbexpress
+```
+
+Para eliminar la bd desde la ejecución de mongo en la terminal
+
+```
+use bdaconsultar
+db.dropDatabase()
+
+```
+luego '1'
+
+Restaurar la bd desde la terminal(no run mongo):
+
+```
+mongorestore --db basedbarestaurar ruta
+
+```
+Si es en windows se debe colocar la carpera de dump dentro de dump del sistema y ejecutar el código anterior
 
 
 
